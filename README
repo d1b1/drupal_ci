@@ -1,0 +1,40 @@
+This repo contains a growing numbers of Jenkins Bash Scripts for a number of drupal jobs.
+
+Assumptions:
+1. Drupal is running on the jenkins master or slave.
+2. Drupal is available on to the user; jenkins or the one you define.
+
+Aegir:
+To make the two processes jenkins and Aegir work together, I have changed the name
+of the user running jenkins. Edit the /etc/defaults/jenkins file to use Aegir. You will
+need to change the owner of the files setup by Aegir. 
+
+I wanted Aegir and Jenkins to manage the same files, so that Jenkins would be able to
+write to the files in the Aegir folder. Aegir needs to own all the files in the /var/aegir/platforms
+so that the Aegir cron process can manage files. If Aegir has issues, the first place to check
+is file ownership. Hense the reason all Aegir docs tell you to work in the /var/aegir folder as the 
+aegir user; using sudo su -s /bin/bash - aegir
+
+First, stop jenkins. /etc/init/jenkins stop
+
+Then change the owner of all files in the following:
+
+1. chown -R aegir /var/run/jenkins
+2. chown -R aegir /var/log/jenkins
+3. chown -R aegir /usr/share/jenkins
+
+Then, restart Jenkins. /etc/init.d/jenkins start. You can confirm that jenkins is running as the expected user 
+with the following:
+
+ps aux | grep jenkins 
+
+If the war file process is not using aegir, then you missed something. Repeat.
+
+Future:
+Over time I will be adding other scripting options, python etc to make it easier to setup CI scripts. For now 
+bash and drush get the job done for drupal work. The scripts will be broken out as new approaches are tried. I
+would like to roll more of the configuration options into a plugin, but am not ready.
+
+Scripts:
+1. drupal_basic_sh - bash script that has hardcoded URL and platform paths.
+2. drupal_full.sh - bash script that has parameterized URL and platform paths.
