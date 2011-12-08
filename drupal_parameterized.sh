@@ -21,6 +21,7 @@ DRUSH="$DRUSH_PATH/drush.php -n -r $DRUPAL_PATH -i $MODULES_DIR -l $SITE_URL"
 
 echo ""
 echo "--------------------------------------------------------"
+echo "WorkSpace: $WORKSPACE"
 echo "Platform Path: $PLATFORM_PATH"
 echo "Site URL: $SITE_URL"
 echo "Drush Path: $DRUSH_PATH"
@@ -29,21 +30,16 @@ echo "Current Drush Command:"
 echo $DRUSH
 echo "--------------------------------------------------------"
 
-# Output the Drush Information
-echo `$PHP $DRUSH status`
+# Output the Drush Information / UnComment to debug issues.
+# echo `$PHP $DRUSH status`
 
 EXITVAL=0
-
-echo "-------------------------------------------------------"
-echo "Jenkins Workspace:"
-echo "$WORKSPACE"
-echo ""
 
 # Remove the .git so we do not have to kill it later while in link
 echo "Removing the .git folder from the workspace."
 rm -Rf $WORKSPACE/.git
 
-# Check our syntax
+# Check our syntax using PHP Lint
 echo ""
 echo "Starting Phase 1: PHP Syntax tests..."
 PHP_FILES=`/usr/bin/find $WORKSPACE -type f -exec grep -q '<?php' {} \; -print`
@@ -52,7 +48,7 @@ for f in $PHP_FILES; do
   $PHP -l "$f"
   if [ $? != 0 ]; then
     let "EXITVAL += 1"
-    echo "$f failed PHP lint test, not syncing to ngdemo website."
+    echo "$f failed PHP lint test. STOPPING Job!"
     exit $EXITVAL
   fi
 done
@@ -63,7 +59,7 @@ echo ""
 echo "Rsynced the $MODULE_NAM to the $MODULES_DIR/$MODULE_NAME to Dev Site Modules Path."
 /usr/bin/rsync -a --delete --exclude='.git' $WORKSPACE/* $MODULES_DIR/$MODULE_NAME
 
-#Run update.php
+# Run update.php
 # THIS IS NOT WORKING RESEARCH: $DRUSH updatedb -q --yes
 
 echo "----------------------------------------------------"
@@ -72,18 +68,15 @@ echo ""
 
 # Run coder
 # --------------------------------------------------------------------------------------
-
 # D6 - CODER_OUTPUT="$DRUSH coder $MODULE_NAME"
 # D7 - CODER_OUTPUT="$DRUSH coder-review $MODULE_NAME"
 
 CODER_OUTPUT=`$DRUSH coder-review $MODULE_NAME no-empty `
-#CODER_OUTPUT=`drush --uri=http://development.ci.publicbroadcasting.net -r /var/aegir/platforms/press-d7 coder-review $MODULE_NAME no-empty `
-
 echo "$CODER_OUTPUT"
 echo ""
 
 if [ -n "`echo $CODER_OUTPUT | grep -E '[0-9]* normal warnings' `" ]; then
-  echo "**CODER FAIL** - Coder module reported errors."  
+  echo "Coder module reported errors. STOPPING Job!"  
   echo ""
   echo "------------------------------------------------------------------"
   echo ""
@@ -101,7 +94,7 @@ if [ -n "$SIMPLETEST" ]; then
   echo $SIMPLETEST_RESULT | grep ", 0 fails," >/dev/null
   EXITVAL=$?
 else
-  echo "Skipped - No class set"
+  echo "Skipped - No web/unit ClassName set in parameters"
   EXITVAL=0
 fi
 
